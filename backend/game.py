@@ -5,8 +5,24 @@ import numpy as np
 
 from actor import Actor
 from game_core import GameCore
+from enemy import Enemy
 
 class Game(GameCore):
+    def __init__(self, tick_rate=60):
+        super().__init__(tick_rate)
+        self.enemy_ai_agents = []  # Dictionary to store Enemy AI objects keyed by enemy id
+    
+    def add_enemies(self, count, health=100):
+        for _ in range(count):
+            position = np.array([np.random.randint(-960, 960), np.random.randint(-540, 540)], dtype=int)
+            
+            # Add enemy to game and get its id
+            enemy_id = self.add_enemy(position, health)
+            
+            # Create Enemy AI agent for this enemy
+            enemy_ai = Enemy(enemy_id, self)
+            self.enemy_ai_agents.append(enemy_ai)
+    
     def action(self, move_x, move_y, direction_x, direction_y, shooting=False):
         self.player_input = {
             'move_x': move_x,
@@ -21,6 +37,30 @@ class Game(GameCore):
     def _game_loop(self):
        while self.running:
            self.tick()
+    
+    def step(self, enemy_id, action):
+        move_x, move_y, direction_x, direction_y, shoot = action
+        
+        # Update enemy with the action
+        self.update_enemy(
+            enemy_id,
+            move_x,
+            move_y,
+            direction_x,
+            direction_y,
+            shoot=1 if np.abs(shoot) > 0.5 else 0
+        )
+        
+        # Return current game state
+        enemy = self.enemies[enemy_id]
+        return {
+            'player_pos': self.player.position,
+            'player_health': self.player.health,
+            'enemy_pos': enemy.position,
+            'enemy_health': enemy.health,
+            'distance': np.linalg.norm(self.player.position - enemy.position),
+            'projectiles': [(p.position, p.direction) for p in self.projectiles]
+        }
 
     def tick(self):
         current_time = time.time()

@@ -23,35 +23,48 @@ class GameEnv(GameCore, gym.Env):
             shape=(5,),
             dtype=np.float32
         )
+        max_distance = np.sqrt((2 * 960)**2 + (2 * 540)**2)
+        self.observation_space = spaces.Dict({
+            'agent': spaces.Box(low=-1, high=1, shape=(2,), dtype=np.int32),
+            'target': spaces.Box(low=-1, high=1, shape=(2,), dtype=np.int32),
+            'agent_health': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            'target_health': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            'distance_to_player': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            'previous_distance': spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+        })
         
     def _game_loop(self):
         pass
     
-    def _snap_to_half(x):
+    def _snap_to_half(self, x):
         return np.round(x * 2) / 2
         
     def _get_obs(self):
         agent = self.enemies[self.id]
+        agent_x, agent_y = agent.position
+        target_x, target_y = self.player.position
+        max_distance = np.sqrt((2 * 960)**2 + (2 * 540)**2)
         
         return {
-            'agent': agent.position, 
-            'target': self.player.position, 
-            'agent_health': agent.health,
-            'target_health': self.player.health,
-            'distance_to_player': np.linalg.norm([self.player.position, agent.position])
+            'agent': np.array([agent_x / 960, agent_y / 540], dtype=np.float32), 
+            'target': np.array([target_x / 960, target_y / 540], dtype=np.float32), 
+            'agent_health': np.array([agent.health / 100], dtype=np.float32),
+            'target_health': np.array([self.player.health / 100], dtype=np.float32),
+            'distance_to_player': np.array([np.linalg.norm(np.array([target_x, target_y]) - np.array([agent_x, agent_y])) / max_distance], dtype=np.float32),
+            'previous_distance': np.array([self.previous_distance / max_distance], dtype=np.float32),
             }
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
         self.player = Actor()
-        self.enemies = {}
+        self.enemies = []
         self.projectiles = []
         
         # Input buffer (updated by WebSocket, read by game loop)
         self.player_input = {'move_x': 0, 'move_y': 0, 'direction_x': 0, 'direction_y': 0, 'shooting': False}
         self.position = self.np_random.integers(-960, 960, size=2, dtype=int)
-        self.previous_distance = np.linalg.norm([self.player.position, self.position])
+        self.previous_distance = np.linalg.norm(np.array(self.player.position) - np.array(self.position))
         self.previous_health = 100
         self.previous_player_health = self.player.health
         self.id = self.add_enemy(self.position, self.previous_health)
@@ -60,16 +73,20 @@ class GameEnv(GameCore, gym.Env):
         self.running = True
         self.last_time = time.time()
         self.game_thread = threading.Thread(target=self._game_loop, daemon=True)
-        self.game_thread.start()     
+        self.game_thread.start()
+        
+        return self._get_obs(), {}     
         
     def step(self, action):
         move_x, move_y, direction_x, direction_y, shoot = action
-        self.update_enemy(self._snap_to_half(move_x), 
+        self.update_enemy(self.id,
+                          self._snap_to_half(move_x), 
                           self._snap_to_half(move_y), 
                           self._snap_to_half(direction_x), 
                           self._snap_to_half(direction_y), 
                           shoot = 1 if np.abs(shoot) > 0.5 else 0)
-        current_distance = np.linalg.norm([self.player.position, self.enemies])
+        enemy = self.enemies[self.id]
+        current_distance = np.linalg.norm(np.array(self.player.position) - np.array(enemy.position))
         enemy = self.enemies[self.id]
         reward = 0
 
@@ -83,10 +100,10 @@ class GameEnv(GameCore, gym.Env):
         reward += 10 if self.player.health < self.previous_player_health else 0
         
         # reward kill
-        reward += 100 if self.player.health <= 0 else 0
+        reward += 100 if self.player.health == 0 else 0
         
         # punish death
-        reward -= 100 if enemy.health <= 0 else 0
+        reward -= 100 if enemy.health == 0 else 0
         
         observation = self._get_obs()
         
@@ -95,4 +112,4 @@ class GameEnv(GameCore, gym.Env):
             enemy.health <= 0
         )
         
-        return observation, reward, terminated, False, observation["distance_to_player"]
+        return observation, reward, terminated, False, {}

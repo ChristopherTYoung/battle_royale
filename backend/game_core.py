@@ -85,6 +85,6 @@ class GameCore:
     def get_info(self):
         return {
             "player": {"position": self.player.position.tolist(), "health": self.player.health},
-            "enemies": {enemy_id: {"position": enemy.position.tolist()} for enemy in self.enemies},
+            "enemies": [enemy.position.tolist() for enemy in self.enemies],
             "projectiles": self.projectiles
         }

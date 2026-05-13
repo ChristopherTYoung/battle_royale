@@ -10,7 +10,7 @@ def test_no_input():
     
     assert np.linalg.norm(game.player.position) == 0
 
-@pytest.mark.parametrize("direction_x, direction_y", [(1, 0), (0, 1), (-1, 0), (0, -1), (0.5, 0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5)])
+@pytest.mark.parametrize("direction_x, direction_y", [(1, 0), (0, 1), (-1, 0), (0, -1), (0.707, 0.707), (-0.707, -0.707), (-0.707, 0.707), (0.707, -0.707)])
 def test_all_positive_directions(direction_x, direction_y):
     game = Game()
     game.action(direction_x, direction_y, direction_x, direction_y, False)
@@ -18,7 +18,7 @@ def test_all_positive_directions(direction_x, direction_y):
     
     assert np.linalg.norm(game.player.position) > 0
 
-@pytest.mark.parametrize("direction_x, direction_y", [(1, 0), (0, 1), (-1, 0), (0, -1), (0.5, 0.5), (-0.5, -0.5), (-0.5, 0.5), (0.5, -0.5)])
+@pytest.mark.parametrize("direction_x, direction_y", [(1, 0), (0, 1), (-1, 0), (0, -1), (0.707, 0.707), (-0.707, -0.707), (-0.707, 0.707), (0.707, -0.707)])
 def test_shooting_creates_projectile(direction_x, direction_y):
     game = Game()
     initial_count = len(game.projectiles)

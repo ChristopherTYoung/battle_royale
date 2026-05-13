@@ -35,9 +35,6 @@ class GameEnv(GameCore, gym.Env):
         
     def _game_loop(self):
         pass
-    
-    def _snap_to_half(self, x):
-        return np.round(x * 2) / 2
         
     def _get_obs(self):
         agent = self.enemies[self.id]
@@ -80,11 +77,11 @@ class GameEnv(GameCore, gym.Env):
     def step(self, action):
         move_x, move_y, direction_x, direction_y, shoot = action
         self.update_enemy(self.id,
-                          self._snap_to_half(move_x), 
-                          self._snap_to_half(move_y), 
-                          self._snap_to_half(direction_x), 
-                          self._snap_to_half(direction_y), 
-                          shoot = 1 if np.abs(shoot) > 0.5 else 0)
+                          move_x, 
+                          move_y, 
+                          direction_x, 
+                          direction_y, 
+                          shoot = 1 if shoot > 0.5 else 0)
         enemy = self.enemies[self.id]
         current_distance = np.linalg.norm(np.array(self.player.position) - np.array(enemy.position))
         enemy = self.enemies[self.id]

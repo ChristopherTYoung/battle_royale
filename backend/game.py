@@ -10,7 +10,8 @@ from enemy import Enemy
 class Game(GameCore):
     def __init__(self, tick_rate=60):
         super().__init__(tick_rate)
-        self.enemy_ai_agents = []  # Dictionary to store Enemy AI objects keyed by enemy id
+        self.enemy_ai_agents = []  # List to store Enemy AI objects
+        self.tick_count = 0
     
     def add_enemies(self, count, health=100):
         for _ in range(count):
@@ -48,7 +49,7 @@ class Game(GameCore):
             move_y,
             direction_x,
             direction_y,
-            shoot=1 if np.abs(shoot) > 0.5 else 0
+            shoot=1 if shoot > 0.5 else 0
         )
         
         # Return current game state
@@ -63,6 +64,7 @@ class Game(GameCore):
         }
 
     def tick(self):
+        self.tick_count += 1
         current_time = time.time()
         dt = current_time - self.last_time
         self.last_time = current_time

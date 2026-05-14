@@ -5,7 +5,13 @@ from game_env import GameEnv
 
 game = GameEnv()
 
-model = PPO("MultiInputPolicy", game, verbose=1)
+model = PPO("MultiInputPolicy", 
+            game, 
+            verbose=1, 
+            learning_rate=4e-4, 
+            n_steps=2048, 
+            batch_size=64
+        )
 model.learn(total_timesteps=100_000)
 model.save("ppo_enemy")
 

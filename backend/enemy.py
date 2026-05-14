@@ -14,6 +14,7 @@ class Enemy:
         enemy_x, enemy_y = enemy.position
         player_x, player_y = self.game.player.position
         self.previous_distance = np.linalg.norm(np.array([player_x, player_y]) - np.array([enemy_x, enemy_y]))
+        self.previous_position = np.array([enemy_x, enemy_y], dtype=np.float32)
         self.max_distance = np.sqrt((2 * 960)**2 + (2 * 540)**2)
         self.last_tick = 0
         self.decision_frequency = 6 
@@ -48,6 +49,9 @@ class Enemy:
                     else:
                         aim_accuracy = 0.0
 
+                    # Calculate position change
+                    position_change = np.linalg.norm(np.array([enemy_x, enemy_y], dtype=np.float32) - self.previous_position)
+                    
                     # Build normalized observation matching GameEnv format exactly
                     obs_dict = {
                         'agent': np.array([enemy_x / 960, enemy_y / 540], dtype=np.float32),
@@ -57,6 +61,7 @@ class Enemy:
                         'distance_to_player': np.array([current_distance / self.max_distance], dtype=np.float32),
                         'previous_distance': np.array([self.previous_distance / self.max_distance], dtype=np.float32),
                         'aim_accuracy': np.array([aim_accuracy], dtype=np.float32),
+                        'position_change': np.array([position_change / self.max_distance], dtype=np.float32),
                     }
 
                     # Get AI action from model
@@ -68,8 +73,9 @@ class Enemy:
                     # Execute action in game
                     self.game.step(self.id, action)
 
-                    # Update previous distance
+                    # Update previous distance and position
                     self.previous_distance = current_distance
+                    self.previous_position = np.array([enemy_x, enemy_y], dtype=np.float32)
                     self.last_tick = self.game.tick_count
                 
                 time.sleep(0.001)

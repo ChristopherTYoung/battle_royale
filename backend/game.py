@@ -11,7 +11,6 @@ class Game(GameCore):
     def __init__(self, tick_rate=60):
         super().__init__(tick_rate)
         self.enemy_ai_agents = []  # List to store Enemy AI objects
-        self.tick_count = 0
     
     def add_enemies(self, count, health=100):
         for _ in range(count):

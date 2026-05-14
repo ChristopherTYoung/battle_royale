@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import type { GameState } from '../utils'
+import { useEffect, useRef, forwardRef } from 'react'
+import type { GameState } from '../utils/websocket'
 
 interface GameCanvasProps {
   gameState: GameState | null
@@ -42,13 +42,12 @@ function getDirection(dx: number, dy: number): Direction {
   }
 }
 
-export function GameCanvas({
+export const GameCanvas = forwardRef<HTMLCanvasElement, GameCanvasProps>(function GameCanvas({
   gameState,
   mousePos,
   width = 1920,
   height = 1080,
-}: GameCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+}, ref) {
   const assetsRef = useRef<{
     player?: HTMLImageElement
     cursor?: HTMLImageElement
@@ -104,10 +103,11 @@ export function GameCanvas({
 
   // Render canvas
   useEffect(() => {
-    if (!canvasRef.current || !gameState) return
+    const canvas = ref as any
+    if (!canvas?.current || !gameState) return
 
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const canvasEl = canvas.current
+    const ctx = canvasEl.getContext('2d')
     if (!ctx) return
 
     // Clear canvas
@@ -143,8 +143,9 @@ export function GameCanvas({
     }
 
     // Draw player
+    const [screenX, screenY] = gameToScreen(gameState.player.pos)
+    
     if (assets.player) {
-      const [screenX, screenY] = gameToScreen(gameState.player.pos)
       ctx.drawImage(
         assets.player,
         screenX - SPRITE_SIZE / 2,
@@ -152,26 +153,32 @@ export function GameCanvas({
         SPRITE_SIZE,
         SPRITE_SIZE
       )
+    } else {
+      // Fallback: draw blue circle if image not loaded
+      ctx.fillStyle = '#00f'
+      ctx.beginPath()
+      ctx.arc(screenX, screenY, SPRITE_SIZE / 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
 
-      // Draw player health bar
-      ctx.fillStyle = '#f00'
-      ctx.fillRect(screenX - 20, screenY - 30, 40, 5)
-      ctx.fillStyle = '#0f0'
-      const healthPercent = gameState.player.health / 100
-      ctx.fillRect(screenX - 20, screenY - 30, 40 * healthPercent, 5)
+    // Draw player health bar
+    ctx.fillStyle = '#f00'
+    ctx.fillRect(screenX - 20, screenY - 30, 40, 5)
+    ctx.fillStyle = '#0f0'
+    const healthPercent = gameState.player.health / 100
+    ctx.fillRect(screenX - 20, screenY - 30, 40 * healthPercent, 5)
 
-      // Draw gun pointing towards cursor
-      if (assets.gun) {
-        const angle = Math.atan2(
-          mousePos.y - screenY,
-          mousePos.x - screenX
-        )
-        ctx.save()
-        ctx.translate(screenX, screenY)
-        ctx.rotate(angle)
-        ctx.drawImage(assets.gun, -8, -8, 16, 16)
-        ctx.restore()
-      }
+    // Draw gun pointing towards cursor
+    if (assets.gun) {
+      const angle = Math.atan2(
+        mousePos.y - screenY,
+        mousePos.x - screenX
+      )
+      ctx.save()
+      ctx.translate(screenX, screenY)
+      ctx.rotate(angle)
+      ctx.drawImage(assets.gun, -8, -8, 16, 16)
+      ctx.restore()
     }
 
     // Draw enemies
@@ -258,11 +265,11 @@ export function GameCanvas({
     ctx.fillText(`Health: ${gameState.player.health}`, 10, 20)
     ctx.fillText(`Enemies: ${gameState.enemies.length}`, 10, 40)
     ctx.fillText(`Bullets: ${gameState.projectiles.length}`, 10, 60)
-  }, [gameState, mousePos, width, height])
+  }, [gameState, mousePos, width, height, ref])
 
   return (
     <canvas
-      ref={canvasRef}
+      ref={ref}
       width={width}
       height={height}
       style={{
@@ -272,4 +279,4 @@ export function GameCanvas({
       }}
     />
   )
-}
+})

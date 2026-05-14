@@ -1,4 +1,3 @@
-import random
 import threading
 import time
 
@@ -15,6 +14,7 @@ class GameEnv(GameCore, gym.Env):
         self.previous_distance = 100
         self.position = [0, 100]
         self.previous_player_health = self.player.health
+        self.max_distance = np.sqrt((2 * 960)**2 + (2 * 540)**2)
         self.previous_health = 100
         self.id = self.add_enemy(self.position, self.previous_health)
         self.action_space = spaces.Box(
@@ -40,15 +40,14 @@ class GameEnv(GameCore, gym.Env):
         agent = self.enemies[self.id]
         agent_x, agent_y = agent.position
         target_x, target_y = self.player.position
-        max_distance = np.sqrt((2 * 960)**2 + (2 * 540)**2)
         
         return {
             'agent': np.array([agent_x / 960, agent_y / 540], dtype=np.float32), 
             'target': np.array([target_x / 960, target_y / 540], dtype=np.float32), 
             'agent_health': np.array([agent.health / 100], dtype=np.float32),
             'target_health': np.array([self.player.health / 100], dtype=np.float32),
-            'distance_to_player': np.array([np.linalg.norm(np.array([target_x, target_y]) - np.array([agent_x, agent_y])) / max_distance], dtype=np.float32),
-            'previous_distance': np.array([self.previous_distance / max_distance], dtype=np.float32),
+            'distance_to_player': np.array([np.linalg.norm(np.array([target_x, target_y]) - np.array([agent_x, agent_y])) / self.max_distance], dtype=np.float32),
+            'previous_distance': np.array([self.previous_distance / self.max_distance], dtype=np.float32),
             }
 
     def reset(self, seed=None, options=None):
@@ -91,7 +90,7 @@ class GameEnv(GameCore, gym.Env):
         reward += 0.01
         
         # encourage approaching player
-        reward += self.previous_distance - current_distance
+        reward += (self.previous_distance - current_distance) / self.max_distance
         
         # reward hits
         reward += 10 if self.player.health < self.previous_player_health else 0

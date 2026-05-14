@@ -41,7 +41,7 @@ export class GameWebSocket {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const wsUrl = `${this.url}/ws/${this.clientId}`;
+        const wsUrl = `${this.url}/game/${this.clientId}`;
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
@@ -99,7 +99,7 @@ export class GameWebSocket {
   sendInput(input: PlayerInput): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        this.ws.send(JSON.stringify({ type: "input", ...input }));
+        this.ws.send(JSON.stringify(input));
       } catch (error) {
         console.error("Failed to send input:", error);
         this.errorCallback?.(new Error("Failed to send input"));

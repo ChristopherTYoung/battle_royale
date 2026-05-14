@@ -31,6 +31,9 @@ class Game(GameCore):
             'direction_y': direction_y,
             'shooting': shooting
         }
+        # Debug: Log input occasionally
+        if self.tick_count % 60 == 0:  # Every 1 second at 60 Hz
+            print(f"Received input: move=({move_x}, {move_y}), dir=({direction_x}, {direction_y}), shoot={shooting}")
         # Return current state without waiting for update
         return self.get_info()
     
@@ -48,7 +51,7 @@ class Game(GameCore):
             move_y,
             direction_x,
             direction_y,
-            shoot=1 if shoot > 0.5 else 0
+            shoot=shoot > 0.5
         )
         
         # Return current game state
@@ -63,24 +66,31 @@ class Game(GameCore):
         }
 
     def tick(self):
-        self.tick_count += 1
-        current_time = time.time()
-        dt = current_time - self.last_time
-        self.last_time = current_time
-           
-        # Read player input (set by action() method)
-        inp = self.player_input
-           
-        # Update player with current input
-        self._update_player(np.array([inp['move_x'], inp['move_y']]), np.array([inp['direction_x'], inp['direction_y']]), dt)
-           
-        # Shoot if requested
-        if inp['shooting']:
-            self._player_shoot()
-           
-        # Update projectiles, check collisions
-        self._update_projectiles(dt)
-        self._check_collisions()
-           
-        # Sleep to maintain tick rate
-        time.sleep(max(0, self.dt - (time.time() - current_time)))
+        try:
+            self.tick_count += 1
+            current_time = time.time()
+            dt = current_time - self.last_time
+            self.last_time = current_time
+               
+            # Read player input (set by action() method)
+            inp = self.player_input
+               
+            # Update player with current input
+            move = np.array([inp['move_x'], inp['move_y']], dtype=np.float32)
+            direction = np.array([inp['direction_x'], inp['direction_y']], dtype=np.float32)
+            self._update_player(move, direction, dt)
+               
+            # Shoot if requested
+            if inp['shooting']:
+                self._player_shoot()
+               
+            # Update projectiles, check collisions
+            self._update_projectiles(dt)
+            self._check_collisions()
+               
+            # Sleep to maintain tick rate
+            time.sleep(max(0, self.dt - (time.time() - current_time)))
+        except Exception as e:
+            print(f"Error in game tick: {e}")
+            import traceback
+            traceback.print_exc()

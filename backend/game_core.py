@@ -50,7 +50,14 @@ class GameCore:
             self.spawn_projectile(self.player, self.player.last_direction)
             
     def spawn_projectile(self, actor, direction):
-        projectile = Bullet(actor.position.copy(), direction, actor, 500, 5, 0)
+        # Spawn bullet 30 units ahead in the direction being aimed
+        dir_length = np.linalg.norm(direction)
+        if dir_length > 0:
+            spawn_offset = (direction / dir_length) * 30
+        else:
+            spawn_offset = np.array([0, 0], dtype=np.float32)
+        spawn_pos = actor.position.copy() + spawn_offset
+        projectile = Bullet(spawn_pos, direction, actor, 500, 5, 0)
         self.projectiles.append(projectile)
         
     def _update_projectiles(self, dt):
@@ -63,14 +70,24 @@ class GameCore:
     def _check_collisions(self):
         for proj in self.projectiles[:]:
             for enemy in self.enemies:
-                dist = np.linalg.norm(proj.position - enemy.position)
-                if dist < 10:
-                    enemy.health -= 10
-                    if enemy.health <= 0:
-                        enemy.health = 0
-                        self.enemies.remove(enemy)
-                    self.projectiles.remove(proj)
-                    break
+                self._check_if_bullet_and_enemy_collide(proj, enemy)
+                break
+            dist = np.linalg.norm(proj.position - self.player.position)
+            if dist < 10:
+                self.player.health -= 10
+                if self.player.health <= 0:
+                    self.player.health = 0
+                self.projectiles.remove(proj)
+                break
+            
+    def _check_if_bullet_and_enemy_collide(self, proj, actor):
+        dist = np.linalg.norm(proj.position - actor.position)
+        if dist < 10:
+            actor.health -= 10
+            if actor.health <= 0:
+                actor.health = 0
+                self.enemies.remove(actor)
+            self.projectiles.remove(proj)
     
     def clamp_position(self, actor):
         actor.position[0] = np.clip(actor.position[0], -960, 960)
